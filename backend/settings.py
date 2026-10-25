@@ -177,14 +177,24 @@ elif USE_POSTGRES:
 else:
     # Serverless environments (Vercel) have a read-only filesystem except /tmp.
     # Automatically copy pre-seeded SQLite database to /tmp for full read/write access.
-    if os.environ.get('VERCEL') or os.environ.get('AWS_LAMBDA_FUNCTION_NAME'):
+    is_serverless = bool(
+        os.environ.get('VERCEL') or
+        os.environ.get('VERCEL_ENV') or
+        os.environ.get('AWS_LAMBDA_FUNCTION_NAME') or
+        os.environ.get('LAMBDA_TASK_ROOT') or
+        '/var/task' in str(BASE_DIR) or
+        not os.access(str(BASE_DIR), os.W_OK)
+    )
+
+    if is_serverless:
         db_path = '/tmp/db.sqlite3'
         template_db = os.path.join(BASE_DIR, 'db.sqlite3')
         if not os.path.exists(db_path) and os.path.exists(template_db):
             try:
                 shutil.copy2(template_db, db_path)
-            except Exception:
-                pass
+                os.chmod(db_path, 0o666)
+            except Exception as e:
+                print("Error copying seed db:", e)
     else:
         db_path = os.path.join(BASE_DIR, 'db.sqlite3')
 
