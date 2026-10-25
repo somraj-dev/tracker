@@ -145,11 +145,25 @@ LOGIN_REDIRECT_URL = '/dashboard/'
 WSGI_APPLICATION = 'backend.wsgi.application'
 
 
-# Database
-# https://docs.djangoproject.com/en/5.1/ref/settings/#databases
+import shutil
+from urllib.parse import urlparse
+
+DATABASE_URL = os.environ.get('DATABASE_URL')
 USE_POSTGRES = os.environ.get('USE_POSTGRES', 'False').lower() in ('true', '1')
 
-if USE_POSTGRES:
+if DATABASE_URL:
+    url = urlparse(DATABASE_URL)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': url.path[1:],
+            'USER': url.username,
+            'PASSWORD': url.password,
+            'HOST': url.hostname,
+            'PORT': url.port or 5432,
+        }
+    }
+elif USE_POSTGRES:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
@@ -161,10 +175,23 @@ if USE_POSTGRES:
         }
     }
 else:
+    # Serverless environments (Vercel) have a read-only filesystem except /tmp.
+    # Automatically copy pre-seeded SQLite database to /tmp for full read/write access.
+    if os.environ.get('VERCEL') or os.environ.get('AWS_LAMBDA_FUNCTION_NAME'):
+        db_path = '/tmp/db.sqlite3'
+        template_db = os.path.join(BASE_DIR, 'db.sqlite3')
+        if not os.path.exists(db_path) and os.path.exists(template_db):
+            try:
+                shutil.copy2(template_db, db_path)
+            except Exception:
+                pass
+    else:
+        db_path = os.path.join(BASE_DIR, 'db.sqlite3')
+
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
+            'NAME': db_path,
         }
     }
 
