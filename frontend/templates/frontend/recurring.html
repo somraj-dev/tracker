@@ -1,0 +1,448 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recurring Payments | Finance Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50 min-h-screen text-gray-800">
+    <!-- Navbar -->
+    <header class="bg-white border-b border-gray-200 sticky top-0 z-20">
+        <div class="max-w-7xl mx-auto flex items-center justify-between px-6 py-4">
+            <div class="flex items-center space-x-3">
+                <a href="/dashboard/" class="p-2 text-gray-500 hover:text-gray-900 rounded-lg hover:bg-gray-100 transition">
+                    <i class="ri-arrow-left-line text-xl"></i>
+                </a>
+                <h1 class="text-xl font-bold text-gray-900">Recurring Payments</h1>
+            </div>
+            <div class="flex items-center space-x-3">
+                <a href="/dashboard/" class="text-sm font-medium text-gray-600 hover:text-blue-600 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition">Dashboard</a>
+                <a href="/transaction/" class="text-sm font-medium text-gray-600 hover:text-blue-600 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition">Transactions</a>
+                <a href="/budget/" class="text-sm font-medium text-gray-600 hover:text-blue-600 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition">Budget</a>
+                <a href="/goals/" class="text-sm font-medium text-gray-600 hover:text-blue-600 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition">Goals</a>
+                <a href="/profile/" class="text-sm font-medium text-gray-600 hover:text-blue-600 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition">Profile</a>
+            </div>
+        </div>
+    </header>
+
+    <div class="max-w-7xl mx-auto px-6 py-8">
+        <!-- Header Row -->
+        <div class="flex flex-wrap justify-between items-center gap-4 mb-8">
+            <div>
+                <h2 class="text-2xl font-bold text-gray-900">Recurring Payments</h2>
+                <p class="text-sm text-gray-500">Manage subscriptions, bills, and automated payments</p>
+            </div>
+            <button id="addPaymentBtn" class="flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition shadow-sm">
+                <i class="ri-add-line mr-2"></i> Add Payment
+            </button>
+        </div>
+
+        <!-- Metric Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <!-- Total Monthly -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <div class="flex items-center space-x-4">
+                    <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center text-xl">
+                        <i class="ri-money-dollar-circle-line"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-400 font-medium uppercase tracking-wider">Total Monthly</p>
+                        <p id="totalMonthlyVal" class="text-2xl font-bold text-gray-900">₹0.00</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Due This Week -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <div class="flex items-center space-x-4">
+                    <div class="w-12 h-12 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center text-xl">
+                        <i class="ri-alarm-warning-line"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-400 font-medium uppercase tracking-wider">Due This Week</p>
+                        <p id="dueThisWeekVal" class="text-2xl font-bold text-gray-900">0 Payments</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Potential Savings -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <div class="flex items-center space-x-4">
+                    <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center text-xl">
+                        <i class="ri-leaf-line"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-400 font-medium uppercase tracking-wider">Potential Savings</p>
+                        <p id="potentialSavingsVal" class="text-2xl font-bold text-emerald-600">₹0.00</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter Tabs -->
+        <div class="flex space-x-2 border-b border-gray-200 mb-6 pb-2 overflow-x-auto">
+            <button class="category-tab px-4 py-2 text-sm font-semibold text-blue-600 border-b-2 border-blue-600" data-category="all">
+                <i class="ri-list-check mr-1"></i> All
+            </button>
+            <button class="category-tab px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700" data-category="entertainment">
+                <i class="ri-music-2-line mr-1"></i> Entertainment
+            </button>
+            <button class="category-tab px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700" data-category="bills">
+                <i class="ri-lightbulb-line mr-1"></i> Bills
+            </button>
+            <button class="category-tab px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700" data-category="rent">
+                <i class="ri-home-2-line mr-1"></i> Rent
+            </button>
+            <button class="category-tab px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700" data-category="insurance">
+                <i class="ri-shield-check-line mr-1"></i> Insurance
+            </button>
+        </div>
+
+        <!-- Payments Table -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-8">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm">
+                    <thead>
+                        <tr class="border-b border-gray-100 text-gray-400 text-xs font-semibold uppercase">
+                            <th class="py-3 px-4">Name</th>
+                            <th class="py-3 px-4">Amount</th>
+                            <th class="py-3 px-4">Frequency</th>
+                            <th class="py-3 px-4">Next Payment</th>
+                            <th class="py-3 px-4">Status</th>
+                            <th class="py-3 px-4 text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recurringList" class="divide-y divide-gray-100">
+                        <tr>
+                            <td colspan="6" class="text-center py-8 text-gray-400">Loading recurring payments...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                <h3 class="text-base font-bold text-gray-900 mb-4">Upcoming Payment Timeline</h3>
+                <div id="recurringTimelineChart" class="h-64 w-full"></div>
+            </div>
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                <h3 class="text-base font-bold text-gray-900 mb-4">Recurring Expenses by Category</h3>
+                <div id="recurringCategoryChart" class="h-64 w-full"></div>
+            </div>
+        </div>
+
+        <!-- AI Insights -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <h3 class="text-base font-bold text-gray-900 mb-4 flex items-center">
+                <i class="ri-robot-line text-blue-600 mr-2"></i> AI Subscription Insights
+            </h3>
+            <div id="recurringInsights" class="space-y-3">
+                <div class="p-4 bg-amber-50 border border-amber-100 rounded-xl text-amber-800 text-sm flex items-center">
+                    <i class="ri-alert-line text-lg mr-2 text-amber-600"></i>
+                    <span>Automatic recurring payments are synced with Celery reminders daily at 9:00 AM.</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Recurring Payment Modal -->
+    <div id="paymentModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl">
+            <h3 class="text-xl font-bold text-gray-900 mb-4">Add Recurring Payment</h3>
+            <form id="recurringForm" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Payment Name</label>
+                    <input type="text" id="payName" class="w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g., Netflix Subscription, Rent" required>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Amount (₹)</label>
+                    <input type="number" step="0.01" id="payAmount" class="w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" placeholder="500" required>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Category</label>
+                    <select id="payCategory" class="w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" required>
+                        <option value="entertainment">Entertainment</option>
+                        <option value="bills">Bills</option>
+                        <option value="rent">Rent</option>
+                        <option value="insurance">Insurance</option>
+                        <option value="others">Others</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Frequency</label>
+                    <select id="payFrequency" class="w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" required>
+                        <option value="monthly">Monthly</option>
+                        <option value="daily">Daily</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="yearly">Yearly</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Next Payment Date</label>
+                    <input type="date" id="payDate" class="w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" required>
+                </div>
+                <div class="flex justify-end space-x-3 pt-2">
+                    <button type="button" id="closePaymentModal" class="px-4 py-2 border border-gray-200 rounded-xl hover:bg-gray-100 transition font-medium">Cancel</button>
+                    <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition font-medium">Save Payment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        let allPayments = [];
+        let timelineChart = null;
+        let categoryChart = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const modal = document.getElementById('paymentModal');
+            const addBtn = document.getElementById('addPaymentBtn');
+            const closeBtn = document.getElementById('closePaymentModal');
+            const form = document.getElementById('recurringForm');
+
+            if (addBtn && modal) {
+                addBtn.addEventListener('click', () => {
+                    document.getElementById('payDate').value = new Date().toISOString().split('T')[0];
+                    modal.classList.remove('hidden');
+                });
+            }
+            if (closeBtn && modal) {
+                closeBtn.addEventListener('click', () => modal.classList.add('hidden'));
+            }
+
+            if (form) {
+                form.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const payload = {
+                        name: document.getElementById('payName').value,
+                        amount: parseFloat(document.getElementById('payAmount').value),
+                        category: document.getElementById('payCategory').value,
+                        frequency: document.getElementById('payFrequency').value,
+                        next_payment_date: document.getElementById('payDate').value,
+                        status: 'active'
+                    };
+
+                    try {
+                        const res = await fetch('/api/payments/recurring-payments/', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': getCookie('csrftoken') || ''
+                            },
+                            body: JSON.stringify(payload)
+                        });
+
+                        if (!res.ok) {
+                            const err = await res.json();
+                            alert('Failed to save recurring payment: ' + JSON.stringify(err));
+                            return;
+                        }
+
+                        alert('Recurring payment added successfully!');
+                        modal.classList.add('hidden');
+                        form.reset();
+                        fetchRecurringPayments();
+                    } catch (err) {
+                        console.error('Save error:', err);
+                        alert('Network error saving recurring payment.');
+                    }
+                });
+            }
+
+            // Tab Filters
+            document.querySelectorAll('.category-tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.category-tab').forEach(t => {
+                        t.classList.remove('text-blue-600', 'border-b-2', 'border-blue-600', 'font-semibold');
+                        t.classList.add('text-gray-500', 'font-medium');
+                    });
+                    tab.classList.add('text-blue-600', 'border-b-2', 'border-blue-600', 'font-semibold');
+                    tab.classList.remove('text-gray-500', 'font-medium');
+                    filterCategory(tab.getAttribute('data-category'));
+                });
+            });
+
+            // Initialize ECharts
+            if (typeof echarts !== 'undefined') {
+                const tElem = document.getElementById('recurringTimelineChart');
+                if (tElem) timelineChart = echarts.init(tElem);
+                const cElem = document.getElementById('recurringCategoryChart');
+                if (cElem) categoryChart = echarts.init(cElem);
+
+                window.addEventListener('resize', () => {
+                    if (timelineChart) timelineChart.resize();
+                    if (categoryChart) categoryChart.resize();
+                });
+            }
+
+            fetchRecurringPayments();
+        });
+
+        async function fetchRecurringPayments() {
+            try {
+                const res = await fetch('/api/payments/recurring-payments/');
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const data = await res.json();
+                allPayments = Array.isArray(data) ? data : (data.results || []);
+                renderPayments(allPayments);
+                updateStats(allPayments);
+                updateCharts(allPayments);
+            } catch (err) {
+                console.error('Fetch payments error:', err);
+                const tbody = document.getElementById('recurringList');
+                if (tbody) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center py-6 text-gray-400">Unable to load recurring payments.</td></tr>';
+                }
+            }
+        }
+
+        function filterCategory(cat) {
+            if (cat === 'all') {
+                renderPayments(allPayments);
+            } else {
+                renderPayments(allPayments.filter(p => p.category.toLowerCase() === cat.toLowerCase()));
+            }
+        }
+
+        function renderPayments(payments) {
+            const tbody = document.getElementById('recurringList');
+            if (!tbody) return;
+
+            if (payments.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-gray-400">No recurring payments found in this category.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = payments.map(p => {
+                const amt = parseFloat(p.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+                return `
+                    <tr class="hover:bg-gray-50/70 transition">
+                        <td class="py-3 px-4 font-semibold text-gray-800">
+                            ${p.name}
+                            <span class="block text-xs font-normal text-gray-400 capitalize">${p.category}</span>
+                        </td>
+                        <td class="py-3 px-4 font-bold text-gray-900">₹${amt}</td>
+                        <td class="py-3 px-4 text-gray-600 capitalize">${p.frequency}</td>
+                        <td class="py-3 px-4 text-gray-600">${p.next_payment_date}</td>
+                        <td class="py-3 px-4">
+                            <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 capitalize">${p.status || 'Active'}</span>
+                        </td>
+                        <td class="py-3 px-4 text-center">
+                            <button onclick="deletePayment(${p.id})" class="text-xs text-rose-500 hover:text-rose-700 font-medium">Delete</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function updateStats(payments) {
+            let totalMonthly = 0;
+            const now = new Date();
+            const weekAhead = new Date();
+            weekAhead.setDate(now.getDate() + 7);
+
+            let dueWeekCount = 0;
+
+            payments.forEach(p => {
+                const amt = parseFloat(p.amount || 0);
+                if (p.frequency === 'monthly') totalMonthly += amt;
+                else if (p.frequency === 'daily') totalMonthly += (amt * 30);
+                else if (p.frequency === 'weekly') totalMonthly += (amt * 4.33);
+                else if (p.frequency === 'yearly') totalMonthly += (amt / 12);
+
+                if (p.next_payment_date) {
+                    const d = new Date(p.next_payment_date);
+                    if (d >= now && d <= weekAhead) dueWeekCount++;
+                }
+            });
+
+            const totalElem = document.getElementById('totalMonthlyVal');
+            if (totalElem) totalElem.textContent = '₹' + totalMonthly.toLocaleString('en-IN', { minimumFractionDigits: 2 });
+
+            const dueElem = document.getElementById('dueThisWeekVal');
+            if (dueElem) dueElem.textContent = dueWeekCount + ' Payments';
+
+            const savElem = document.getElementById('potentialSavingsVal');
+            if (savElem) savElem.textContent = '₹' + (totalMonthly * 0.15).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+        }
+
+        function updateCharts(payments) {
+            if (timelineChart && typeof echarts !== 'undefined') {
+                const names = payments.slice(0, 6).map(p => p.name);
+                const amounts = payments.slice(0, 6).map(p => parseFloat(p.amount || 0));
+
+                timelineChart.setOption({
+                    tooltip: { trigger: 'axis' },
+                    grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+                    xAxis: { type: 'category', data: names.length ? names : ['No Bills'] },
+                    yAxis: { type: 'value' },
+                    series: [{
+                        type: 'bar',
+                        data: amounts.length ? amounts : [0],
+                        itemStyle: { color: '#3B82F6', borderRadius: [4, 4, 0, 0] }
+                    }]
+                });
+            }
+
+            if (categoryChart && typeof echarts !== 'undefined') {
+                const catMap = {};
+                payments.forEach(p => {
+                    const c = p.category || 'others';
+                    catMap[c] = (catMap[c] || 0) + parseFloat(p.amount || 0);
+                });
+
+                const pieData = Object.keys(catMap).map(k => ({ name: k, value: catMap[k] }));
+
+                categoryChart.setOption({
+                    tooltip: { trigger: 'item', formatter: '{b}: ₹{c} ({d}%)' },
+                    legend: { bottom: 0, left: 'center' },
+                    series: [{
+                        type: 'pie',
+                        radius: ['40%', '70%'],
+                        data: pieData.length ? pieData : [{ name: 'No Payments', value: 0 }]
+                    }]
+                });
+            }
+        }
+
+        async function deletePayment(id) {
+            if (!confirm('Are you sure you want to delete this payment?')) return;
+            try {
+                const res = await fetch(`/api/payments/recurring-payments/${id}/`, {
+                    method: 'DELETE',
+                    headers: { 'X-CSRFToken': getCookie('csrftoken') || '' }
+                });
+                if (res.ok) {
+                    alert('Payment deleted successfully.');
+                    fetchRecurringPayments();
+                } else {
+                    alert('Failed to delete payment.');
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+    </script>
+</body>
+</html>

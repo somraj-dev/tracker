@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - AI Finance Tracker</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@latest/dist/tailwind.min.css" rel="stylesheet">
+</head>
+
+<body class="min-h-screen bg-gradient">
+    <div class="min-h-screen flex items-center justify-center py-12 px-4">
+        <div class="max-w-md w-full bg-white/90 login-card rounded-xl p-8">
+            <div class="text-center mb-8">
+                <h2 class="text-3xl font-bold text-gray-900">Welcome Back</h2>
+                <p class="mt-2 text-sm text-gray-600">Please sign in to your account</p>
+            </div>
+            <form id="loginForm">
+                <label class="block text-sm font-medium text-gray-700">Username</label>
+                <input type="text" id="username" required class="input-field block w-full pl-3 py-3 border border-gray-200 rounded-button text-sm" placeholder="Enter your username">
+
+                <label class="block text-sm font-medium text-gray-700 mt-4">Password</label>
+                <input type="password" id="password" required class="input-field block w-full pl-3 py-3 border border-gray-200 rounded-button text-sm" placeholder="Enter your password">
+
+                <button type="submit" class="w-full mt-6 py-3 bg-purple-600 text-white rounded-lg font-medium">Sign in</button>
+            </form>
+
+            <p id="errorMessage" class="text-red-500 text-sm mt-4 hidden"></p>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            const response = await fetch('/login/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                localStorage.setItem('access_token', data.access);
+                localStorage.setItem('refresh_token', data.refresh);
+                window.location.href = '/dashboard/';  // Redirect to dashboard
+            } else {
+                document.getElementById('errorMessage').textContent = data.error;
+                document.getElementById('errorMessage').classList.remove('hidden');
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,282 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Dashboard | Personal Finance Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50 min-h-screen text-gray-800">
+    <!-- Header -->
+    <header class="bg-white border-b border-gray-200 sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto flex items-center justify-between px-6 py-4">
+            <!-- Welcome Message -->
+            <div>
+                <h2 id="welcomeMessage" class="text-2xl font-bold text-gray-900">
+                    Welcome back, {{ request.user.username|default:"User" }}
+                </h2>
+                <p id="currentDate" class="text-sm text-gray-500"></p>
+            </div>
+
+            <!-- Right Section: Notifications & User Avatar -->
+            <div class="flex items-center space-x-4">
+                <!-- Notification Icon & Dropdown -->
+                <div class="relative">
+                    <button id="notificationBtn" class="relative p-2 text-gray-600 hover:text-gray-900 rounded-full hover:bg-gray-100 transition" aria-label="Notifications">
+                        <div class="w-6 h-6 flex items-center justify-center">
+                            <i class="ri-notification-3-line text-xl"></i>
+                        </div>
+                        <span id="notificationBadge" class="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white hidden"></span>
+                    </button>
+
+                    <!-- Notification Dropdown -->
+                    <div id="notificationDropdown" class="hidden absolute right-0 mt-2 w-80 bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden">
+                        <div class="px-4 py-3 border-b border-gray-100 font-semibold text-gray-800 flex justify-between items-center">
+                            <span>Notifications</span>
+                            <span class="text-xs text-blue-600 font-normal">Recent</span>
+                        </div>
+                        <div id="notificationList" class="p-2 max-h-80 overflow-y-auto">
+                            <p class="text-sm text-gray-500 text-center py-4">Loading notifications...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- User Profile Dropdown -->
+                <div class="relative">
+                    <button id="userDropdownBtn" class="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center border border-blue-200 hover:ring-2 hover:ring-blue-400 transition overflow-hidden">
+                        <img id="userAvatar" src="https://ui-avatars.com/api/?name={{ request.user.username|default:'U' }}&background=3b82f6&color=fff" class="w-full h-full object-cover" alt="User Avatar">
+                    </button>
+                    
+                    <!-- Dropdown Menu -->
+                    <div id="userDropdown" class="hidden absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden py-1">
+                        <div class="px-4 py-2 border-b border-gray-100">
+                            <p class="text-sm font-semibold text-gray-800">{{ request.user.username|default:"User" }}</p>
+                            <p class="text-xs text-gray-500 truncate">{{ request.user.email|default:"user@example.com" }}</p>
+                        </div>
+                        <a href="/profile/" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition">
+                            <i class="ri-user-3-line mr-2 text-gray-500"></i> Profile
+                        </a>
+                        <a href="/set-budget/" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition">
+                            <i class="ri-pie-chart-2-line mr-2 text-gray-500"></i> Set Budget
+                        </a>
+                        <a href="/ai-insights/" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition">
+                            <i class="ri-sparkling-line mr-2 text-gray-500"></i> AI Insights
+                        </a>
+                        <div class="border-t border-gray-100 my-1"></div>
+                        <a href="/logout/" class="flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition">
+                            <i class="ri-logout-box-r-line mr-2 text-red-500"></i> Logout
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-6 py-8">
+        <!-- Financial Summary Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <!-- Total Balance -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 transition hover:shadow-md">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-sm font-medium text-gray-500">Total Balance</h3>
+                    <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
+                        <i class="ri-wallet-3-line text-xl"></i>
+                    </div>
+                </div>
+                <p id="totalBalance" class="text-2xl font-bold text-gray-900">₹{{ total_balance|default:"0.00" }}</p>
+                <p id="balanceChange" class="text-sm {% if balance_change >= 0 %}text-emerald-600{% else %}text-rose-600{% endif %} mt-2 flex items-center font-medium">
+                    <i class="{% if balance_change >= 0 %}ri-arrow-up-line{% else %}ri-arrow-down-line{% endif %} mr-1"></i>
+                    {{ balance_change|default:"0.0" }}% from last month
+                </p>
+            </div>
+
+            <!-- Monthly Income -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 transition hover:shadow-md">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-sm font-medium text-gray-500">Monthly Income</h3>
+                    <div class="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center">
+                        <i class="ri-arrow-up-circle-line text-xl"></i>
+                    </div>
+                </div>
+                <p id="monthlyIncome" class="text-2xl font-bold text-gray-900">₹{{ monthly_income|default:"0.00" }}</p>
+                <p id="incomeChange" class="text-sm {% if income_change >= 0 %}text-emerald-600{% else %}text-rose-600{% endif %} mt-2 flex items-center font-medium">
+                    <i class="{% if income_change >= 0 %}ri-arrow-up-line{% else %}ri-arrow-down-line{% endif %} mr-1"></i>
+                    {{ income_change|default:"0.0" }}% from last month
+                </p>
+            </div>
+
+            <!-- Monthly Expenses -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 transition hover:shadow-md">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-sm font-medium text-gray-500">Monthly Expenses</h3>
+                    <div class="w-10 h-10 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center">
+                        <i class="ri-arrow-down-circle-line text-xl"></i>
+                    </div>
+                </div>
+                <p id="monthlyExpenses" class="text-2xl font-bold text-gray-900">₹{{ monthly_expenses|default:"0.00" }}</p>
+                <p id="expenseChange" class="text-sm {% if expense_change <= 0 %}text-emerald-600{% else %}text-rose-600{% endif %} mt-2 flex items-center font-medium">
+                    <i class="{% if expense_change <= 0 %}ri-arrow-down-line{% else %}ri-arrow-up-line{% endif %} mr-1"></i>
+                    {{ expense_change|default:"0.0" }}% from last month
+                </p>
+            </div>
+
+            <!-- Savings Progress -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 transition hover:shadow-md">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-sm font-medium text-gray-500">Savings Progress</h3>
+                    <div class="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">
+                        <i class="ri-safe-2-line text-xl"></i>
+                    </div>
+                </div>
+                <p id="savingsProgress" class="text-2xl font-bold text-gray-900">{{ savings_progress|default:"0" }}%</p>
+                <div class="w-full bg-gray-100 rounded-full h-2.5 mt-3 overflow-hidden">
+                    <div id="savingsProgressBar" class="bg-indigo-600 h-2.5 rounded-full transition-all duration-500" style="width: {{ savings_progress|default:0 }}%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-8">
+            <h3 class="text-lg font-bold text-gray-900 mb-4">Quick Actions</h3>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <button id="voiceEntryBtn" class="flex flex-col items-center justify-center p-4 bg-gray-50 hover:bg-blue-50 border border-gray-100 hover:border-blue-200 rounded-xl transition group">
+                    <div class="w-12 h-12 bg-white rounded-full shadow-sm flex items-center justify-center mb-2 group-hover:scale-105 transition">
+                        <i class="ri-mic-line text-2xl text-blue-600"></i>
+                    </div>
+                    <span class="text-sm font-medium text-gray-700 group-hover:text-blue-700">Voice Entry</span>
+                </button>
+                <a href="/set-budget/" class="flex flex-col items-center justify-center p-4 bg-gray-50 hover:bg-emerald-50 border border-gray-100 hover:border-emerald-200 rounded-xl transition group">
+                    <div class="w-12 h-12 bg-white rounded-full shadow-sm flex items-center justify-center mb-2 group-hover:scale-105 transition">
+                        <i class="ri-pie-chart-line text-2xl text-emerald-600"></i>
+                    </div>
+                    <span class="text-sm font-medium text-gray-700 group-hover:text-emerald-700">Set Budget</span>
+                </a>
+                <a href="/add-transaction/" class="flex flex-col items-center justify-center p-4 bg-blue-50 hover:bg-blue-100 border border-blue-100 rounded-xl transition group">
+                    <div class="w-12 h-12 bg-white rounded-full shadow-sm flex items-center justify-center mb-2 group-hover:scale-105 transition">
+                        <i class="ri-add-circle-line text-2xl text-blue-600"></i>
+                    </div>
+                    <span class="text-sm font-semibold text-blue-700">Add Transaction</span>
+                </a>
+                <a href="/ai-insights/" class="flex flex-col items-center justify-center p-4 bg-gray-50 hover:bg-purple-50 border border-gray-100 hover:border-purple-200 rounded-xl transition group">
+                    <div class="w-12 h-12 bg-white rounded-full shadow-sm flex items-center justify-center mb-2 group-hover:scale-105 transition">
+                        <i class="ri-sparkling-2-line text-2xl text-purple-600"></i>
+                    </div>
+                    <span class="text-sm font-medium text-gray-700 group-hover:text-purple-700">AI Spending Insights</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Spending Analysis -->
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-8">
+            <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900">Spending Analysis</h3>
+                    <p class="text-sm text-gray-500">Income vs Expenses over time</p>
+                </div>
+                <div class="flex space-x-2">
+                    <button class="filter-btn px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-600 text-white" data-period="30d">Last 30 Days</button>
+                    <button class="filter-btn px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200" data-period="7d">Last 7 Days</button>
+                    <button class="filter-btn px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200" data-period="90d">Last 90 Days</button>
+                </div>
+            </div>
+            <div id="spendingChart" class="h-80 w-full"></div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8 pt-6 border-t border-gray-100">
+                <div class="bg-gray-50 p-5 rounded-xl border border-gray-100">
+                    <h4 class="text-sm font-semibold text-gray-900 mb-3">Expense Breakdown by Category</h4>
+                    <div id="expensePieChart" class="h-64 w-full"></div>
+                </div>
+                <div class="bg-gray-50 p-5 rounded-xl border border-gray-100">
+                    <h4 class="text-sm font-semibold text-gray-900 mb-3">Monthly Expenses Trend</h4>
+                    <div id="expenseBarChart" class="h-64 w-full"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Two Column Layout: Recent Transactions & Upcoming Bills -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <!-- Recent Transactions -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-lg font-bold text-gray-900">Recent Transactions</h3>
+                    <a href="/add-transaction/" class="text-sm font-medium text-blue-600 hover:underline">+ New</a>
+                </div>
+                <div id="transactionList" class="space-y-3">
+                    <div class="p-6 text-center text-gray-400">Loading transactions...</div>
+                </div>
+            </div>
+
+            <!-- Upcoming Bills -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-lg font-bold text-gray-900">Upcoming Bills</h3>
+                    <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">Scheduled</span>
+                </div>
+                <div id="billsList" class="space-y-3">
+                    <div class="p-6 text-center text-gray-400">Loading upcoming bills...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Insights -->
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-8">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center space-x-2">
+                    <div class="w-8 h-8 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center">
+                        <i class="ri-sparkling-fill"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-900">AI Financial Insights</h3>
+                </div>
+                <a href="/ai-insights/" class="text-sm font-medium text-purple-600 hover:underline">View All &rarr;</a>
+            </div>
+            <div id="aiInsightsBox">
+                <div class="p-6 text-center text-gray-400">Loading smart recommendations...</div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Transaction Confirmation Modal -->
+    <div id="transactionModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex justify-center items-center p-4">
+        <div class="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-md">
+            <h3 class="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                <i class="ri-mic-line text-blue-600 mr-2"></i> Confirm Voice Transaction
+            </h3>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Amount (₹)</label>
+                    <input type="number" step="0.01" id="editAmount" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                    <input type="text" id="editCategory" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Transaction Type</label>
+                    <select id="editType" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                        <option value="expense">Expense</option>
+                        <option value="income">Income</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="flex justify-end space-x-3 mt-6">
+                <button id="cancelTransaction" class="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition font-medium">Cancel</button>
+                <button id="saveTransaction" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition font-medium shadow-sm">Save Transaction</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Initial Data Payload -->
+    <script id="initialSpendingData" type="application/json">{{ spending_data|safe|default:"{}" }}</script>
+
+    <!-- Main JavaScript Logic -->
+    <script src="{% static 'frontend/js/main.js' %}"></script>
+</body>
+</html>
